@@ -150,7 +150,9 @@ ${summary.collect { k,v -> "            <dt>$k</dt><dd><samp>${v ?: '<span style
 Channel
   .from( ch_input )
   .splitCsv(header:false, sep:',')
-  .map { it = ["${it[0]}", "${it[1]}", "${it[2]}", "${it[3]}", "${it[4]}", "${it[5]}", "${it[8]}", "${it[11]}", [file("${cluster_path}/02_rfastq/${it[4]}/${it[5]}/${it[4]}_${it[5]}_read_1.fq.gz", checkIfExists: true), file("${cluster_path}/data/02_rfastq/${it[4]}/${it[5]}/${it[4]}_${it[5]}_read_2.fq.gz", checkIfExists: true)]]}
+  .map { it = ["${it[0]}", "${it[1]}", "${it[2]}", "${it[3]}", "${it[4]}", "${it[5]}", "${it[8]}", "${it[11]}",
+  [file("${cluster_path}/02_rfastq/${it[8]}/${it[4]}/${it[5]}/${it[4]}_${it[5]}_read_1.fq.gz", checkIfExists: true),
+  file("${cluster_path}/data/02_rfastq/${it[8]}/${it[4]}/${it[5]}/${it[4]}_${it[5]}_read_2.fq.gz", checkIfExists: true)]]}
   .set { ch_demux }
 
 
