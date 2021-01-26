@@ -260,7 +260,7 @@ process demux_index {
    }
  } else {
    ch_demux_index2
-    .into { ch_demux_BC }
+    .set { ch_demux_BC }
  }
 
 
@@ -322,7 +322,7 @@ process demux_BC {
    process fastqc {
      tag "$sample"
      label 'process_medium'
-     publishDir "${cluster_path}/04_pfastq/${platform}/${run_id}/${lane}/${user}/$fastqc/${sample}", mode: 'copy',
+     publishDir "${cluster_path}/04_pfastq/${platform}/${run_id}/${lane}/${user}/fastqc/${sample}", mode: 'copy',
      saveAs: { filename ->
        filename.endsWith(".zip") ? "zips/$filename" : filename
      }
