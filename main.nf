@@ -193,7 +193,7 @@ process demux_index {
   } else {
     """
     cutadapt \
-    -e $errors \
+    $errors \
     --no-indels \
     -a $sample=\"$index\$\" \
     -o $read2_index -p $read1_index \
@@ -251,7 +251,7 @@ process demux_index {
      } else {
        """
        cutadapt \
-       -e $errors \
+       $errors \
        --no-indels \
        -a $sample=\"$index2\$\" \
        -o $read2_index2 -p $read1_index2 \
