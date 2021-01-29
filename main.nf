@@ -177,11 +177,13 @@ process demux_index {
   path("*.{fq.gz,log}")
 
   script:
-  discard = params.save_untrimmed ? '' : '--discard-untrimmed'
+  //discard = params.save_untrimmed ? '' : '--discard-untrimmed'
   read1 = "${reads[0]}"
   read2 = "${reads[1]}"
   read1_index = "${sample}_${run_id}_${lane}_${index}_R1.fq.gz"
   read2_index = "${sample}_${run_id}_${lane}_${index}_R2.fq.gz"
+  errors = index.length() > 6 ? "-e 0.15" : "-e 0.2"
+
 
   if (index == "NNNNNNNN") {
     """
@@ -191,13 +193,13 @@ process demux_index {
   } else {
     """
     cutadapt \
-    -e $max_errors \
+    -e $errors \
     --no-indels \
     -a $sample=\"$index\$\" \
     -o $read2_index -p $read1_index \
     $read2 $read1 \
     -j 0 \
-    $discard > ${sample}_${run_id}_${lane}_${index}.log
+    --discard-untrimmed > ${sample}_${run_id}_${lane}_${index}.log
     """
   }
 
@@ -227,11 +229,12 @@ process demux_index {
      path("*.{fq.gz,log}")
 
      script:
-     discard = params.save_untrimmed ? '' : '--discard-untrimmed'
+     //discard = params.save_untrimmed ? '' : '--discard-untrimmed'
      read1 = "${reads[0]}"
      read2 = "${reads[1]}"
      read1_index2 = "${sample}_${run_id}_${lane}_${index}_${index2}_R1.fq.gz"
      read2_index2 = "${sample}_${run_id}_${lane}_${index}_${index2}_R2.fq.gz"
+     errors = index2.length() > 6 ? "-e 0.15" : "-e 0.2"
 
      if (index2 == "NNNNNNNN") {
        if (index == "NNNNNNNN") {
@@ -248,13 +251,13 @@ process demux_index {
      } else {
        """
        cutadapt \
-       -e $max_errors \
+       -e $errors \
        --no-indels \
        -a $sample=\"$index2\$\" \
        -o $read2_index2 -p $read1_index2 \
        $read2 $read1 \
        -j 0 \
-       $discard > "${sample}_${run_id}_${lane}_${index}_${index2}.log"
+       --discard-untrimmed > "${sample}_${run_id}_${lane}_${index}_${index2}.log"
        """
      }
    }
@@ -287,12 +290,12 @@ process demux_BC {
   path("*.{fq.gz,log}")
 
   script:
-  discard = params.save_untrimmed ? '' : '--discard-untrimmed'
+  //discard = params.save_untrimmed ? '' : '--discard-untrimmed'
   read1 = "${reads[0]}"
   read2 = "${reads[1]}"
   read1_BC = "${sample}_${run_id}_${lane}_R1.fq.gz"
   read2_BC = "${sample}_${run_id}_${lane}_R2.fq.gz"
-  errors = barcode.length() > 6 ? "-e $max_errors" : "-e 0.2"
+  errors = barcode.length() > 6 ? "-e 0.15" : "-e 0.2"
 
   if (barcode == "NNNNNNNN" | barcode == "NNNNNN") {
     """
@@ -308,7 +311,7 @@ process demux_BC {
     -o $read1_BC -p $read2_BC \
     $read1 $read2 \
     -j 0 \
-    $discard > "${sample}_${run_id}_${lane}.log"
+    --discard-untrimmed > "${sample}_${run_id}_${lane}.log"
     """
   }
 }
