@@ -150,7 +150,7 @@ ${summary.collect { k,v -> "            <dt>$k</dt><dd><samp>${v ?: '<span style
 Channel
   .from( ch_input )
   .splitCsv(header:false, sep:',')
-  .map { it = ["${it[0]}", "${it[1]}", "${it[2]}", "${it[3]}", "${it[4]}", "${it[5]}", "${it[8]}", "${it[11]}",
+  .map { it = ["${it[0]}", "${it[1]}", "${it[2]}", "${it[3]}", "${it[4]}", "${it[5]}", "${it[7]}", "${it[8]}", "${it[11]}",
   [file("${cluster_path}/02_rfastq/${it[8]}/${it[4]}/${it[5]}/${it[4]}_${it[5]}_read_1.fq.gz", checkIfExists: true),
   file("${cluster_path}/02_rfastq/${it[8]}/${it[4]}/${it[5]}/${it[4]}_${it[5]}_read_2.fq.gz", checkIfExists: true)]]}
   .set { ch_demux }
@@ -170,16 +170,16 @@ process demux_index {
   }
 
   input:
-  set val(sample), val(index), val(index2), val(barcode), val(run_id), val(lane), val(platform), val(user), path(reads) from ch_demux
+  set val(sample), val(index), val(index2), val(barcode), val(run_id), val(lane), val(protocol), val(platform), val(user), path(reads) from ch_demux
 
   output:
-  set val(sample), path("*.fq.gz"), val(index), val(index2), val(barcode), val(run_id), val(lane), val(platform), val(user) into ch_demux_index2
+  set val(sample), path("*.fq.gz"), val(index), val(index2), val(barcode), val(run_id), val(lane), val(protocol), val(platform), val(user) into ch_demux_index2
   path("*.{fq.gz,log}")
 
   script:
   //discard = params.save_untrimmed ? '' : '--discard-untrimmed'
-  read1 = "${reads[0]}"
-  read2 = "${reads[1]}"
+  read1 = reads[0]
+  read2 = reads[1]
   read1_index = "${sample}_${run_id}_${lane}_${index}_R1.fq.gz"
   read2_index = "${sample}_${run_id}_${lane}_${index}_R2.fq.gz"
   errors = index.length() > 6 ? "-e 0.15" : "-e 0.2"
@@ -187,7 +187,7 @@ process demux_index {
 
   if (index == "NNNNNNNN") {
     """
-    length=$(zcat $read1 | head -2 | tail -1 | awk '{print length($0)}')
+    length=($(echo -e `zcat $read1 | head -2 | tail -1 | awk '{print length(\$0)}'`))
     cutadapt -l ${length} -o $read1_index $read1 -j 0 > "${sample}_${run_id}_${lane}_${index}_R1.log"
     cutadapt -l ${length} -o $read2_index $read2 -j 0 > "${sample}_${run_id}_${lane}_${index}_R2.log"
     """
@@ -223,16 +223,16 @@ process demux_index {
      }
 
      input:
-     set val(sample), path(reads), val(index), val(index2), val(barcode), val(run_id), val(lane), val(platform), val(user) from ch_demux_index2
+     set val(sample), path(reads), val(index), val(index2), val(barcode), val(run_id), val(lane), val(protocol), val(platform), val(user) from ch_demux_index2
 
      output:
-     set val(sample), path("*.fq.gz"), val(index), val(index2), val(barcode), val(run_id), val(lane), val(platform), val(user) into ch_demux_BC
+     set val(sample), path("*.fq.gz"), val(index), val(index2), val(barcode), val(run_id), val(lane), val(protocol), val(platform), val(user) into ch_demux_BC
      path("*.{fq.gz,log}")
 
      script:
      //discard = params.save_untrimmed ? '' : '--discard-untrimmed'
-     read1 = "${reads[0]}"
-     read2 = "${reads[1]}"
+     read1 = reads[0]
+     read2 = reads[1]
      read1_index2 = "${sample}_${run_id}_${lane}_${index}_${index2}_R1.fq.gz"
      read2_index2 = "${sample}_${run_id}_${lane}_${index}_${index2}_R2.fq.gz"
      errors = index2.length() > 6 ? "-e 0.15" : "-e 0.2"
@@ -245,7 +245,7 @@ process demux_index {
          """
        } else {
          """
-         length=$(zcat $read1 | head -2 | tail -1 | awk '{print length($0)}')
+         length=($(echo -e `zcat $read1 | head -2 | tail -1 | awk '{print length(\$0)}'`))
          cutadapt -l ${length} -o $read1_index2 $read1 -j 0 > "${sample}_${run_id}_${lane}_${index}_${index2}_R1.log"
          cutadapt -l ${length} -o $read2_index2 $read2 -j 0 > "${sample}_${run_id}_${lane}_${index}_${index2}_R2.log"
          """
@@ -285,16 +285,17 @@ process demux_BC {
   }
 
   input:
-  set val(sample), path(reads), val(index), val(index2), val(barcode), val(run_id), val(lane), val(platform), val(user) from ch_demux_BC
+  set val(sample), path(reads), val(index), val(index2), val(barcode), val(run_id), val(lane), val(protocol), val(platform), val(user) from ch_demux_BC
 
   output:
   set val(sample), path("*.fq.gz"), val(run_id), val(lane), val(platform), val(user) into ch_fastqc
+  set val(sample), path("*.fq.gz"), val(index), val(barcode), val(run_id), val(lane), val(protocol), val(platform), val(user) into ch_single_cell_header
   path("*.{fq.gz,log}")
 
   script:
   //discard = params.save_untrimmed ? '' : '--discard-untrimmed'
-  read1 = "${reads[0]}"
-  read2 = "${reads[1]}"
+  read1 = reads[0]
+  read2 = reads[1]
   read1_BC = "${sample}_${run_id}_${lane}_R1.fq.gz"
   read2_BC = "${sample}_${run_id}_${lane}_R2.fq.gz"
   errors = barcode.length() > 6 ? "-e 0.15" : "-e 0.2"
@@ -316,6 +317,39 @@ process demux_BC {
     --discard-untrimmed > "${sample}_${run_id}_${lane}.log"
     """
   }
+}
+
+
+process single_cell_fastq {
+  tag "$sample"
+  label 'process_high'
+  publishDir "${cluster_path}/04_pfastq/${platform}/${run_id}/${lane}/${user}/single_cell_header/", mode: 'copy',
+
+  when:
+  protocol == "scRNAseq"
+
+  input:
+  set val(sample), path(reads), val(index), val(barcode), val(run_id), val(lane), val(protocol), val(platform), val(user) from ch_single_cell_header
+
+  output:
+  path("*.fastq.gz")
+
+  script:
+  fqheader1 = reads[0].minus(".fq.gz") + "_BC.fq.gz"
+  fqheader2 = reads[1].minus(".fq.gz") + "_BC.fq.gz"
+
+  // Re-write reads header to Illumina format, taking info from MGI headers
+  // For this step, BC sequence is collected from header (BC was incuded in the header in previous step)
+
+  """
+  zcat ${reads[0]} | awk -v var="$index" '{if (NR%4 == 1){print \$1"_"var} else{print \$1}}' | gzip > $fqheader1 &
+  zcat ${reads[1]} | awk -v var="$index" '{if (NR%4 == 1){print \$1"_"var} else{print \$1}}' | gzip > $fqheader2
+  File_ID_new=$(echo "${sample}" | rev | cut -c 3- | rev)
+  File_ID_number=$(echo "${sample}" | rev | cut -c 1 | rev)
+  Lane_ID_number=$(echo "${lane}" | rev | cut -c 1 | rev)
+  python convertHeaders.py -i $fqheader1 -o ${File_ID_new}_S1_L00${Lane_ID_number}_R1_00${File_ID_number}.fastq.gz &
+  python convertHeaders.py -i $fqheader2 -o ${File_ID_new}_S1_L00${Lane_ID_number}_R2_00${File_ID_number}.fastq.gz
+  """
 }
 
 
