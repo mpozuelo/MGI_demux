@@ -187,8 +187,9 @@ process demux_index {
 
   if (index == "NNNNNNNN") {
     """
-    cutadapt -l 100 -o $read1_index $read1 -j 0 > "${sample}_${run_id}_${lane}_${index}_R1.log"
-    cutadapt -l 100 -o $read2_index $read2 -j 0 > "${sample}_${run_id}_${lane}_${index}_R2.log"
+    length=$(zcat $read1 | head -2 | tail -1 | awk '{print length($0)}')
+    cutadapt -l ${length} -o $read1_index $read1 -j 0 > "${sample}_${run_id}_${lane}_${index}_R1.log"
+    cutadapt -l ${length} -o $read2_index $read2 -j 0 > "${sample}_${run_id}_${lane}_${index}_R2.log"
     """
   } else {
     """
@@ -244,8 +245,9 @@ process demux_index {
          """
        } else {
          """
-         cutadapt -l 100 -o $read1_index2 $read1 -j 0 > "${sample}_${run_id}_${lane}_${index}_${index2}_R1.log"
-         cutadapt -l 100 -o $read2_index2 $read2 -j 0 > "${sample}_${run_id}_${lane}_${index}_${index2}_R2.log"
+         length=$(zcat $read1 | head -2 | tail -1 | awk '{print length($0)}')
+         cutadapt -l ${length} -o $read1_index2 $read1 -j 0 > "${sample}_${run_id}_${lane}_${index}_${index2}_R1.log"
+         cutadapt -l ${length} -o $read2_index2 $read2 -j 0 > "${sample}_${run_id}_${lane}_${index}_${index2}_R2.log"
          """
        }
      } else {
