@@ -17,4 +17,4 @@ dependencies:
 
 
   ##Other
-  - gzip::1.7
+  #- gzip::1.7

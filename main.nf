@@ -320,9 +320,9 @@ process demux_BC {
 }
 
 
-process single_cell_fastq {
+/*process single_cell_fastq {
   tag "$sample"
-  label 'process_high'
+  label 'process_low'
   publishDir "${cluster_path}/04_pfastq/${platform}/${run_id}/${lane}/${user}/single_cell_header/", mode: 'copy',
 
   when:
@@ -332,7 +332,7 @@ process single_cell_fastq {
   set val(sample), path(reads), val(index), val(barcode), val(run_id), val(lane), val(protocol), val(platform), val(user) from ch_single_cell_header
 
   output:
-  path("*.fastq.gz")
+  path("*_S1_L00*.fq.gz")
 
   script:
   fqheader1 = reads[0].minus(".fq.gz") + "_BC.fq.gz"
@@ -347,8 +347,8 @@ process single_cell_fastq {
   File_ID_new=$(echo "${sample}" | rev | cut -c 3- | rev)
   File_ID_number=$(echo "${sample}" | rev | cut -c 1 | rev)
   Lane_ID_number=$(echo "${lane}" | rev | cut -c 1 | rev)
-  python convertHeaders.py -i $fqheader1 -o ${File_ID_new}_S1_L00${Lane_ID_number}_R1_00${File_ID_number}.fastq.gz &
-  python convertHeaders.py -i $fqheader2 -o ${File_ID_new}_S1_L00${Lane_ID_number}_R2_00${File_ID_number}.fastq.gz
+  python convertHeaders.py -i $fqheader1 -o ${File_ID_new}_S1_L00${Lane_ID_number}_R1_00${File_ID_number}.fq.gz &
+  python convertHeaders.py -i $fqheader2 -o ${File_ID_new}_S1_L00${Lane_ID_number}_R2_00${File_ID_number}.fq.gz
   """
 }
 
