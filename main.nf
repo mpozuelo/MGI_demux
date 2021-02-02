@@ -185,11 +185,18 @@ process demux_index {
   errors = index.length() > 6 ? "-e 0.15" : "-e 0.2"
 
 
-  if (index == "NNNNNNNN") {
+  if (index == "NNNNNNNN" | index == "NNNNNN") {
     """
     length=(\$(echo -e `zcat $read1 | head -2 | tail -1 | awk '{print length(\$0)}'`))
+    length2=(\$(echo -e `zcat $read2 | head -2 | tail -1 | awk '{print length(\$0)}'`))
+    if [\$length eq \$length2]
+    then
+    mv $read1 $read1_index
+    mv $read2 $read2_index
+    else
     cutadapt -l \$length -o $read1_index $read1 -j 0 > "${sample}_${run_id}_${lane}_${index}_R1.log"
     cutadapt -l \$length -o $read2_index $read2 -j 0 > "${sample}_${run_id}_${lane}_${index}_R2.log"
+    fi
     """
   } else {
     """
@@ -237,8 +244,8 @@ process demux_index {
      read2_index2 = "${sample}_${run_id}_${lane}_${index}_${index2}_R2.fq.gz"
      errors = index2.length() > 6 ? "-e 0.15" : "-e 0.2"
 
-     if (index2 == "NNNNNNNN") {
-       if (index == "NNNNNNNN") {
+     if (index2 == "NNNNNNNN" | index2 == "NNNNNN") {
+       if (index == "NNNNNNNN" | index == "NNNNNN" ) {
          """
          mv $read1 $read1_index2
          mv $read2 $read2_index2
@@ -246,8 +253,15 @@ process demux_index {
        } else {
          """
          length=(\$(echo -e `zcat $read1 | head -2 | tail -1 | awk '{print length(\$0)}'`))
+         length2=(\$(echo -e `zcat $read2 | head -2 | tail -1 | awk '{print length(\$0)}'`))
+         if [\$length eq \$length2]
+         then
+         mv $read1 $read1_index2
+         mv $read2 $read2_index2
+         else
          cutadapt -l \$length -o $read1_index2 $read1 -j 0 > "${sample}_${run_id}_${lane}_${index}_${index2}_R1.log"
          cutadapt -l \$length -o $read2_index2 $read2 -j 0 > "${sample}_${run_id}_${lane}_${index}_${index2}_R2.log"
+         fi
          """
        }
      } else {
@@ -320,16 +334,16 @@ process demux_BC {
 }
 
 
-/*process single_cell_fastq {
+process single_cell_fastq {
   tag "$sample"
   label 'process_low'
   publishDir "${cluster_path}/04_pfastq/${platform}/${run_id}/${lane}/${user}/single_cell_header/", mode: 'copy',
 
-  when:
-  protocol == "scRNAseq"
-
   input:
   set val(sample), path(reads), val(index), val(barcode), val(run_id), val(lane), val(protocol), val(platform), val(user) from ch_single_cell_header
+
+  when:
+  protocol == "scRNAseq"
 
   output:
   path("*_S1_L00*.fq.gz")
