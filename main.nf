@@ -344,9 +344,9 @@ process single_cell_fastq {
   """
   zcat ${reads[0]} | awk -v var="$index" '{if (NR%4 == 1){print \$1"_"var} else{print \$1}}' | bgzip > $fqheader1 &
   zcat ${reads[1]} | awk -v var="$index" '{if (NR%4 == 1){print \$1"_"var} else{print \$1}}' | bgzip > $fqheader2
-  File_ID_new=$(echo "${sample}" | rev | cut -c 3- | rev)
-  File_ID_number=$(echo "${sample}" | rev | cut -c 1 | rev)
-  Lane_ID_number=$(echo "${lane}" | rev | cut -c 1 | rev)
+  File_ID_new=\$(echo "${sample}" | rev | cut -c 3- | rev)
+  File_ID_number=\$(echo "${sample}" | rev | cut -c 1 | rev)
+  Lane_ID_number=\$(echo "${lane}" | rev | cut -c 1 | rev)
   python convertHeaders.py -i $fqheader1 -o ${File_ID_new}_S1_L00${Lane_ID_number}_R1_00${File_ID_number}.fq.gz &
   python convertHeaders.py -i $fqheader2 -o ${File_ID_new}_S1_L00${Lane_ID_number}_R2_00${File_ID_number}.fq.gz
   """
