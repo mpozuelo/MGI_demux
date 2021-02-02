@@ -333,7 +333,7 @@ process demux_BC {
   }
 }
 
-
+/*
 process single_cell_fastq {
   tag "single_cell"
   label 'process_low'
