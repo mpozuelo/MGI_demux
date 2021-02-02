@@ -335,7 +335,7 @@ process demux_BC {
 
 
 process single_cell_fastq {
-  tag "$sample"
+  tag "single_cell"
   label 'process_low'
   publishDir "${cluster_path}/04_pfastq/${platform}/${run_id}/${lane}/${user}/single_cell_header/", mode: 'copy',
 
