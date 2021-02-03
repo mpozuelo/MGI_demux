@@ -164,17 +164,18 @@ Channel
 process demux_index {
   tag "$sample"
   label 'process_high'
-  publishDir "${cluster_path}/03_intermediate/${platform}/${run_id}/${lane}/Index-removal/", mode: 'copy',
+  /*publishDir "${cluster_path}/03_intermediate/${platform}/${run_id}/${lane}/Index-removal/", mode: 'copy',
   saveAs: { filename ->
     filename.endsWith(".log") ? "logs/$filename" : filename
   }
+  */
 
   input:
   set val(sample), val(index), val(index2), val(barcode), val(run_id), val(lane), val(protocol), val(platform), val(user), path(reads) from ch_demux
 
   output:
   set val(sample), path("*.fq.gz"), val(index), val(index2), val(barcode), val(run_id), val(lane), val(protocol), val(platform), val(user) into ch_demux_index2
-  path("*.{fq.gz,log}")
+  path("*.log") optional true
 
   script:
   //discard = params.save_untrimmed ? '' : '--discard-untrimmed'
@@ -189,7 +190,7 @@ process demux_index {
     """
     length=(\$(echo -e `zcat $read1 | head -2 | tail -1 | awk '{print length(\$0)}'`))
     length2=(\$(echo -e `zcat $read2 | head -2 | tail -1 | awk '{print length(\$0)}'`))
-    if [\$length eq \$length2]
+    if [ "\$length" = "\$length2" ]
     then
     mv $read1 $read1_index
     mv $read2 $read2_index
@@ -224,10 +225,11 @@ process demux_index {
    process demux_index2 {
      tag "$sample"
      label 'process_high'
-     publishDir "${cluster_path}/03_intermediate/${platform}/${run_id}/${lane}/Index2-removal/", mode: 'copy',
+     /*publishDir "${cluster_path}/03_intermediate/${platform}/${run_id}/${lane}/Index2-removal/", mode: 'copy',
      saveAs: { filename ->
        filename.endsWith(".log") ? "logs/$filename" : filename
      }
+     */
 
      input:
      set val(sample), path(reads), val(index), val(index2), val(barcode), val(run_id), val(lane), val(protocol), val(platform), val(user) from ch_demux_index2
@@ -254,7 +256,7 @@ process demux_index {
          """
          length=(\$(echo -e `zcat $read1 | head -2 | tail -1 | awk '{print length(\$0)}'`))
          length2=(\$(echo -e `zcat $read2 | head -2 | tail -1 | awk '{print length(\$0)}'`))
-         if [\$length eq \$length2]
+         if [ "\$length" = "\$length2" ]
          then
          mv $read1 $read1_index2
          mv $read2 $read2_index2
