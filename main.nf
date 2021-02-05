@@ -164,11 +164,11 @@ Channel
 process demux_index {
   tag "$sample"
   label 'process_high'
-  /*publishDir "${cluster_path}/03_intermediate/${platform}/${run_id}/${lane}/Index-removal/", mode: 'copy',
+  publishDir "${cluster_path}/03_intermediate/${platform}/${run_id}/${lane}/Index-removal/", mode: 'copy',
   saveAs: { filename ->
     filename.endsWith(".log") ? "logs/$filename" : filename
   }
-  */
+
 
   input:
   set val(sample), val(index), val(index2), val(barcode), val(run_id), val(lane), val(protocol), val(platform), val(user), path(reads) from ch_demux
@@ -225,11 +225,11 @@ process demux_index {
    process demux_index2 {
      tag "$sample"
      label 'process_high'
-     /*publishDir "${cluster_path}/03_intermediate/${platform}/${run_id}/${lane}/Index2-removal/", mode: 'copy',
+     publishDir "${cluster_path}/03_intermediate/${platform}/${run_id}/${lane}/Index2-removal/", mode: 'copy',
      saveAs: { filename ->
        filename.endsWith(".log") ? "logs/$filename" : filename
      }
-     */
+
 
      input:
      set val(sample), path(reads), val(index), val(index2), val(barcode), val(run_id), val(lane), val(protocol), val(platform), val(user) from ch_demux_index2
@@ -295,17 +295,27 @@ process demux_index {
 process demux_BC {
   tag "$sample"
   label 'process_high'
-  publishDir "${cluster_path}/04_pfastq/${platform}/${run_id}/${lane}/${user}/demux_fastq/", mode: 'copy',
+  if (protocol == "" | protocol == "") {
+    publishDir "${cluster_path}/04_pfastq/${platform}/${run_id}/${lane}/${user}/demux_fastq_wUMI/", mode: 'copy',
   saveAs: { filename ->
     filename.endsWith(".log") ? "logs/$filename" : filename
   }
+} else {
+  if (protocol == "" | protocol == "") {
+    publishDir "${cluster_path}/04_pfastq/${platform}/${run_id}/${lane}/${user}/demux_fastq/", mode: 'copy',
+  saveAs: { filename ->
+    filename.endsWith(".log") ? "logs/$filename" : filename
+  }
+}
+
 
   input:
   set val(sample), path(reads), val(index), val(index2), val(barcode), val(run_id), val(lane), val(protocol), val(platform), val(user) from ch_demux_BC
 
   output:
   set val(sample), path("*.fq.gz"), val(run_id), val(lane), val(platform), val(user) into ch_fastqc
-  set val(sample), path("*.fq.gz"), val(index), val(barcode), val(run_id), val(lane), val(protocol), val(platform), val(user) into ch_single_cell_header
+  set val(sample), path("*.fq.gz"), val(index), val(barcode), val(run_id), val(lane), val(protocol), val(platform), val(user) into ch_single_cell_header,
+                                                                                                                                   ch_umi_removal
   path("*.{fq.gz,log}")
 
   script:
@@ -335,9 +345,9 @@ process demux_BC {
   }
 }
 
-/*
+
 process single_cell_fastq {
-  tag "single_cell"
+  tag "$sample"
   label 'process_low'
   publishDir "${cluster_path}/04_pfastq/${platform}/${run_id}/${lane}/${user}/single_cell_header/", mode: 'copy',
 
@@ -367,6 +377,42 @@ process single_cell_fastq {
   python convertHeaders.py -i $fqheader2 -o ${File_ID_new}_S1_L00${Lane_ID_number}_R2_00${File_ID_number}.fq.gz
   """
 }
+
+
+
+
+
+process single_cell_fastq {
+  tag "$sample"
+  label 'process_medium'
+  publishDir "${cluster_path}/04_pfastq/${platform}/${run_id}/${lane}/${user}/demux_fastq/", mode: 'copy',
+
+  input:
+  set val(sample), path(reads), val(index), val(barcode), val(run_id), val(lane), val(protocol), val(platform), val(user) from ch_umi_removal
+
+  when:
+  protocol == "scRNAseq"
+
+  output:
+  path(".fq.gz")
+
+  script:
+  woumi1 = "${sample}_${run_id}_${lane}_R1_woUMI.fq.gz"
+  woumi2 = "${sample}_${run_id}_${lane}_R2_woUMI.fq.gz"
+  umi = "${sample}_${run_id}_${lane}_UMI.fq.gz"
+
+
+  // Re-write reads header to Illumina format, taking info from MGI headers
+  // For this step, BC sequence is collected from header (BC was incuded in the header in previous step)
+
+  """
+  cutadapt -l 10 -j 0 -o $umi ${reads[0]}
+  umi_tools extract -I ${reads[0]} -S $woumi1 --read2-in=${reads[1]} --read2-out=$woumi2 --bc-pattern=^NNNNNNNNNN
+  """
+}
+
+
+
 
 
 /*
