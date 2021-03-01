@@ -295,18 +295,12 @@ process demux_index {
 process demux_BC {
   tag "$sample"
   label 'process_high'
-  publishDir "${cluster_path}/data/04_pfastq/${platform}/${run_id}/${lane}/${user}/", mode: 'copy',
-  saveAs: { filename ->
-    if (protocol == "RNAseq_3_S" | protocol == "RNAseq_3_ULI") {
-      if (filename.endsWith(".log")) {
-        "demux_fastq_wUMI/logs/$filename"
-        } else {
-          "demux_fastq_wUMI/$filename"
-        }
-    } else {
-      "demux_fastq/logs/$filename" : "demux_fastq/$filename"
+
+    publishDir "${cluster_path}/data/04_pfastq/${platform}/${run_id}/${lane}/${user}/demux_fastq", mode: 'copy',
+    saveAs: { filename ->
+      filename.endsWith(".log") ? "logs/$filename" : filename
     }
-  }
+
 
   input:
   set val(sample), path(reads), val(index), val(index2), val(barcode), val(run_id), val(lane), val(protocol), val(platform), val(genome), val(user) from ch_demux_BC
@@ -330,22 +324,22 @@ process demux_BC {
     mv $read1 $read1_BC
     mv $read2 $read2_BC
     """
-    } else {
-      """
-      cutadapt \
-      $errors \
-      --no-indels \
-      -g $sample=\"^$barcode\" \
-      -o $read1_BC -p $read2_BC \
-      $read1 $read2 \
-      -j 0 \
-      --discard-untrimmed > "${sample}_${run_id}_${lane}.log"
-      """
-    }
+  } else {
+    """
+    cutadapt \
+    $errors \
+    --no-indels \
+    -g $sample=\"^$barcode\" \
+    -o $read1_BC -p $read2_BC \
+    $read1 $read2 \
+    -j 0 \
+    --discard-untrimmed > "${sample}_${run_id}_${lane}.log"
+    """
   }
+}
 
-  /*
-  process single_cell_fastq {
+/*
+process single_cell_fastq {
   tag "$sample"
   label 'process_low'
   publishDir "${cluster_path}/data/04_pfastq/${platform}/${run_id}/${lane}/${user}/single_cell_header/", mode: 'copy',
