@@ -295,19 +295,17 @@ process demux_index {
 process demux_BC {
   tag "$sample"
   label 'process_high'
-  if (protocol == "" | protocol == "") {
+  if (protocol == "RNAseq_3_S" | protocol == "RNAseq_3_ULI") {
     publishDir "${cluster_path}/data/04_pfastq/${platform}/${run_id}/${lane}/${user}/demux_fastq_wUMI/", mode: 'copy',
-  saveAs: { filename ->
-    filename.endsWith(".log") ? "logs/$filename" : filename
-  }
-} else {
-  if (protocol == "" | protocol == "") {
-    publishDir "${cluster_path}/data/04_pfastq/${platform}/${run_id}/${lane}/${user}/demux_fastq/", mode: 'copy',
-  saveAs: { filename ->
-    filename.endsWith(".log") ? "logs/$filename" : filename
-  }
-}
-}
+    saveAs: { filename ->
+      filename.endsWith(".log") ? "logs/$filename" : filename
+    }
+    } else {
+      publishDir "${cluster_path}/data/04_pfastq/${platform}/${run_id}/${lane}/${user}/demux_fastq/", mode: 'copy',
+      saveAs: { filename ->
+        filename.endsWith(".log") ? "logs/$filename" : filename
+      }
+    }
 
   input:
   set val(sample), path(reads), val(index), val(index2), val(barcode), val(run_id), val(lane), val(protocol), val(platform), val(genome), val(user) from ch_demux_BC
