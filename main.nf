@@ -298,7 +298,11 @@ process demux_BC {
   publishDir "${cluster_path}/data/04_pfastq/${platform}/${run_id}/${lane}/${user}/", mode: 'copy',
   saveAs: { filename ->
     if (protocol == "RNAseq_3_S" | protocol == "RNAseq_3_ULI") {
-      filename.endsWith(".log") ? "demux_fastq_wUMI/logs/$filename" : "demux_fastq_wUMI/$filename"
+      if (filename.endsWith(".log")) {
+        "demux_fastq_wUMI/logs/$filename"
+        } else {
+          "demux_fastq_wUMI/$filename"
+        }
     } else {
       "demux_fastq/logs/$filename" : "demux_fastq/$filename"
     }
