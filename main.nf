@@ -150,9 +150,9 @@ ${summary.collect { k,v -> "            <dt>$k</dt><dd><samp>${v ?: '<span style
 Channel
   .from( ch_input )
   .splitCsv(header:false, sep:',')
-  .map { it = ["${it[0]}", "${it[1]}", "${it[2]}", "${it[3]}", "${it[4]}", "${it[5]}", "${it[7]}", "${it[8]}", "${it[11]}",
-  [file("${cluster_path}/02_rfastq/${it[8]}/${it[4]}/${it[5]}/${it[4]}_${it[5]}_read_1.fq.gz", checkIfExists: true),
-  file("${cluster_path}/02_rfastq/${it[8]}/${it[4]}/${it[5]}/${it[4]}_${it[5]}_read_2.fq.gz", checkIfExists: true)]]}
+  .map { it = ["${it[0]}", "${it[1]}", "${it[2]}", "${it[3]}", "${it[4]}", "${it[5]}", "${it[7]}", "${it[8]}", "${it[10]}", "${it[11]}",
+  [file("${cluster_path}/data/02_rfastq/${it[8]}/${it[4]}/${it[5]}/${it[4]}_${it[5]}_read_1.fq.gz", checkIfExists: true),
+  file("${cluster_path}/data/02_rfastq/${it[8]}/${it[4]}/${it[5]}/${it[4]}_${it[5]}_read_2.fq.gz", checkIfExists: true)]]}
   .set { ch_demux }
 
 
@@ -164,17 +164,17 @@ Channel
 process demux_index {
   tag "$sample"
   label 'process_high'
-  publishDir "${cluster_path}/03_intermediate/${platform}/${run_id}/${lane}/Index-removal/", mode: 'copy',
+  publishDir "${cluster_path}/data/03_intermediate/${platform}/${run_id}/${lane}/Index-removal/", mode: 'copy',
   saveAs: { filename ->
     filename.endsWith(".log") ? "logs/$filename" : filename
   }
 
 
   input:
-  set val(sample), val(index), val(index2), val(barcode), val(run_id), val(lane), val(protocol), val(platform), val(user), path(reads) from ch_demux
+  set val(sample), val(index), val(index2), val(barcode), val(run_id), val(lane), val(protocol), val(platform), val(genome), val(user), path(reads) from ch_demux
 
   output:
-  set val(sample), path("*.fq.gz"), val(index), val(index2), val(barcode), val(run_id), val(lane), val(protocol), val(platform), val(user) into ch_demux_index2
+  set val(sample), path("*.fq.gz"), val(index), val(index2), val(barcode), val(run_id), val(lane), val(protocol), val(platform), val(genome), val(user) into ch_demux_index2
   path("*.log") optional true
 
   script:
@@ -225,17 +225,17 @@ process demux_index {
    process demux_index2 {
      tag "$sample"
      label 'process_high'
-     publishDir "${cluster_path}/03_intermediate/${platform}/${run_id}/${lane}/Index2-removal/", mode: 'copy',
+     publishDir "${cluster_path}/data/03_intermediate/${platform}/${run_id}/${lane}/Index2-removal/", mode: 'copy',
      saveAs: { filename ->
        filename.endsWith(".log") ? "logs/$filename" : filename
      }
 
 
      input:
-     set val(sample), path(reads), val(index), val(index2), val(barcode), val(run_id), val(lane), val(protocol), val(platform), val(user) from ch_demux_index2
+     set val(sample), path(reads), val(index), val(index2), val(barcode), val(run_id), val(lane), val(protocol), val(platform), val(genome), val(user) from ch_demux_index2
 
      output:
-     set val(sample), path("*.fq.gz"), val(index), val(index2), val(barcode), val(run_id), val(lane), val(protocol), val(platform), val(user) into ch_demux_BC
+     set val(sample), path("*.fq.gz"), val(index), val(index2), val(barcode), val(run_id), val(lane), val(protocol), val(platform), val(genome), val(user) into ch_demux_BC
      path("*.{fq.gz,log}")
 
      script:
@@ -296,13 +296,13 @@ process demux_BC {
   tag "$sample"
   label 'process_high'
   if (protocol == "" | protocol == "") {
-    publishDir "${cluster_path}/04_pfastq/${platform}/${run_id}/${lane}/${user}/demux_fastq_wUMI/", mode: 'copy',
+    publishDir "${cluster_path}/data/04_pfastq/${platform}/${run_id}/${lane}/${user}/demux_fastq_wUMI/", mode: 'copy',
   saveAs: { filename ->
     filename.endsWith(".log") ? "logs/$filename" : filename
   }
 } else {
   if (protocol == "" | protocol == "") {
-    publishDir "${cluster_path}/04_pfastq/${platform}/${run_id}/${lane}/${user}/demux_fastq/", mode: 'copy',
+    publishDir "${cluster_path}/data/04_pfastq/${platform}/${run_id}/${lane}/${user}/demux_fastq/", mode: 'copy',
   saveAs: { filename ->
     filename.endsWith(".log") ? "logs/$filename" : filename
   }
@@ -310,12 +310,12 @@ process demux_BC {
 
 
   input:
-  set val(sample), path(reads), val(index), val(index2), val(barcode), val(run_id), val(lane), val(protocol), val(platform), val(user) from ch_demux_BC
+  set val(sample), path(reads), val(index), val(index2), val(barcode), val(run_id), val(lane), val(protocol), val(platform), val(genome), val(user) from ch_demux_BC
 
   output:
   set val(sample), path("*.fq.gz"), val(run_id), val(lane), val(platform), val(user) into ch_fastqc
-  set val(sample), path("*.fq.gz"), val(index), val(barcode), val(run_id), val(lane), val(protocol), val(platform), val(user) into ch_single_cell_header,
-                                                                                                                                   ch_umi_removal
+  set val(sample), path("*.fq.gz"), val(index), val(barcode), val(run_id), val(lane), val(protocol), val(platform), val(genome), val(user) into ch_single_cell_header,
+                                                                                                                                                ch_umi_removal
   path("*.{fq.gz,log}")
 
   script:
@@ -345,24 +345,29 @@ process demux_BC {
   }
 }
 
-
+/*
 process single_cell_fastq {
   tag "$sample"
   label 'process_low'
-  publishDir "${cluster_path}/04_pfastq/${platform}/${run_id}/${lane}/${user}/single_cell_header/", mode: 'copy',
+  publishDir "${cluster_path}/data/04_pfastq/${platform}/${run_id}/${lane}/${user}/single_cell_header/", mode: 'copy',
 
   input:
-  set val(sample), path(reads), val(index), val(barcode), val(run_id), val(lane), val(protocol), val(platform), val(user) from ch_single_cell_header
-
-  when:
-  protocol == "scRNAseq"
+  set val(sample), path(reads), val(index), val(barcode), val(run_id), val(lane), val(protocol), val(platform), val(genome), val(user) from ch_single_cell_header
 
   output:
   path("*_S1_L00*.fq.gz")
 
+  when:
+  protocol == "scRNAseq"
+
   script:
-  fqheader1 = reads[0].minus(".fq.gz") + "_BC.fq.gz"
-  fqheader2 = reads[1].minus(".fq.gz") + "_BC.fq.gz"
+  fqheader1 = "${sample}_${run_id}_${lane}_R1_BC.fq.gz"
+  fqheader2 = "${sample}_${run_id}_${lane}_R2_BC.fq.gz"
+  if (genome == "hg38") {
+    cellrangerref = file("${cluster_path}/References/")
+  } else if (genome == "mm11") {
+    cellrangerref =
+  }
 
   // Re-write reads header to Illumina format, taking info from MGI headers
   // For this step, BC sequence is collected from header (BC was incuded in the header in previous step)
@@ -373,28 +378,34 @@ process single_cell_fastq {
   File_ID_new=\$(echo "${sample}" | rev | cut -c 3- | rev)
   File_ID_number=\$(echo "${sample}" | rev | cut -c 1 | rev)
   Lane_ID_number=\$(echo "${lane}" | rev | cut -c 1 | rev)
-  python convertHeaders.py -i $fqheader1 -o ${File_ID_new}_S1_L00${Lane_ID_number}_R1_00${File_ID_number}.fq.gz &
-  python convertHeaders.py -i $fqheader2 -o ${File_ID_new}_S1_L00${Lane_ID_number}_R2_00${File_ID_number}.fq.gz
+  python convertHeaders.py -i $fqheader1 -o \${File_ID_new}_S1_L00\${Lane_ID_number}_R1_00\${File_ID_number}.fq.gz &
+  python convertHeaders.py -i $fqheader2 -o \${File_ID_new}_S1_L00\${Lane_ID_number}_R2_00\${File_ID_number}.fq.gz
+
+  cellranger count --id=\${File_ID_new} \
+  --fastqs=./ \
+  --sample=\${File_ID_new} \
+  --transcriptome=$cellrangerref
+
   """
 }
+*/
 
 
 
 
-
-process single_cell_fastq {
+process remove_umi {
   tag "$sample"
   label 'process_medium'
-  publishDir "${cluster_path}/04_pfastq/${platform}/${run_id}/${lane}/${user}/demux_fastq/", mode: 'copy',
+  publishDir "${cluster_path}/data/04_pfastq/${platform}/${run_id}/${lane}/${user}/demux_fastq/", mode: 'copy'
 
   input:
-  set val(sample), path(reads), val(index), val(barcode), val(run_id), val(lane), val(protocol), val(platform), val(user) from ch_umi_removal
-
-  when:
-  protocol == "scRNAseq"
+  set val(sample), path(reads), val(index), val(barcode), val(run_id), val(lane), val(protocol), val(platform), val(genome), val(user) from ch_umi_removal
 
   output:
   path(".fq.gz")
+
+  when:
+  protocol == "RNAseq_3_S" | protocol == "RNAseq_3_ULI"
 
   script:
   woumi1 = "${sample}_${run_id}_${lane}_R1_woUMI.fq.gz"
@@ -407,7 +418,7 @@ process single_cell_fastq {
 
   """
   cutadapt -l 10 -j 0 -o $umi ${reads[0]}
-  umi_tools extract -I ${reads[0]} -S $woumi1 --read2-in=${reads[1]} --read2-out=$woumi2 --bc-pattern=^NNNNNNNNNN
+  umi_tools extract -I ${reads[0]} -S $woumi1 --read2-in=${reads[1]} --read2-out=$woumi2 --bc-pattern=NNNNNNNNNN
   """
 }
 
@@ -423,7 +434,7 @@ process single_cell_fastq {
    process fastqc {
      tag "$sample"
      label 'process_medium'
-     publishDir "${cluster_path}/04_pfastq/${platform}/${run_id}/${lane}/${user}/fastqc/${sample}", mode: 'copy',
+     publishDir "${cluster_path}/data/04_pfastq/${platform}/${run_id}/${lane}/${user}/fastqc/${sample}", mode: 'copy',
      saveAs: { filename ->
        filename.endsWith(".zip") ? "zips/$filename" : filename
      }
