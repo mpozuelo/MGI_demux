@@ -307,7 +307,7 @@ process demux_BC {
     filename.endsWith(".log") ? "logs/$filename" : filename
   }
 }
-
+}
 
   input:
   set val(sample), path(reads), val(index), val(index2), val(barcode), val(run_id), val(lane), val(protocol), val(platform), val(genome), val(user) from ch_demux_BC
