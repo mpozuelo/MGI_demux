@@ -295,17 +295,13 @@ process demux_index {
 process demux_BC {
   tag "$sample"
   label 'process_high'
-  if (protocol == "RNAseq_3_S" | protocol == "RNAseq_3_ULI") {
-    publishDir "${cluster_path}/data/04_pfastq/${platform}/${run_id}/${lane}/${user}/demux_fastq_wUMI/", mode: 'copy',
-    saveAs: { filename ->
-      filename.endsWith(".log") ? "logs/$filename" : filename
-    }
-    } else {
-      publishDir "${cluster_path}/data/04_pfastq/${platform}/${run_id}/${lane}/${user}/demux_fastq/", mode: 'copy',
-      saveAs: { filename ->
-        filename.endsWith(".log") ? "logs/$filename" : filename
-      }
-    }
+
+  publishDir "${cluster_path}/data/04_pfastq/${platform}/${run_id}/${lane}/${user}/demux_fastq_wUMI/", mode: 'copy',
+  saveAs: { filename ->
+    if (protocol == "RNAseq_3_S" | protocol == "RNAseq_3_ULI") filename.endsWith(".log") ? "/demux_fastq_wUMI/logs/$filename" : "/demux_fastq_wUMI/$filename"
+    else { "/demux_fastq/logs/$filename" : "/demux_fastq/$filename" }
+  }
+
 
   input:
   set val(sample), path(reads), val(index), val(index2), val(barcode), val(run_id), val(lane), val(protocol), val(platform), val(genome), val(user) from ch_demux_BC
@@ -313,7 +309,7 @@ process demux_BC {
   output:
   set val(sample), path("*.fq.gz"), val(run_id), val(lane), val(platform), val(user) into ch_fastqc
   set val(sample), path("*.fq.gz"), val(index), val(barcode), val(run_id), val(lane), val(protocol), val(platform), val(genome), val(user) into ch_single_cell_header,
-                                                                                                                                                ch_umi_removal
+  ch_umi_removal
   path("*.{fq.gz,log}")
 
   script:
@@ -329,22 +325,22 @@ process demux_BC {
     mv $read1 $read1_BC
     mv $read2 $read2_BC
     """
-  } else {
-    """
-    cutadapt \
-    $errors \
-    --no-indels \
-    -g $sample=\"^$barcode\" \
-    -o $read1_BC -p $read2_BC \
-    $read1 $read2 \
-    -j 0 \
-    --discard-untrimmed > "${sample}_${run_id}_${lane}.log"
-    """
+    } else {
+      """
+      cutadapt \
+      $errors \
+      --no-indels \
+      -g $sample=\"^$barcode\" \
+      -o $read1_BC -p $read2_BC \
+      $read1 $read2 \
+      -j 0 \
+      --discard-untrimmed > "${sample}_${run_id}_${lane}.log"
+      """
+    }
   }
-}
 
-/*
-process single_cell_fastq {
+  /*
+  process single_cell_fastq {
   tag "$sample"
   label 'process_low'
   publishDir "${cluster_path}/data/04_pfastq/${platform}/${run_id}/${lane}/${user}/single_cell_header/", mode: 'copy',
