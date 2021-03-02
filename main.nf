@@ -297,7 +297,7 @@ process demux_BC {
   tag "$sample"
   label 'process_high'
 
-    publishDir "${cluster_path}/data/04_pfastq/${platform}/${run_id}/${lane}/${user}/BC_removal", mode: 'copy',
+    publishDir "${cluster_path}/data/03_intermediate/${platform}/${run_id}/${lane}/${user}/BC_removal", mode: 'copy',
     saveAs: { filename ->
       filename.endsWith(".log") ? "logs/$filename" : filename
     }
@@ -387,9 +387,9 @@ process single_cell_fastq {
 process change_header {
   tag "$sample"
   label 'process_medium'
-  publishDir "${cluster_path}/04_pfastq/${platform}/${run_id}/${lane}/${user}/demux_fastq/", mode: 'copy',
+  publishDir "${cluster_path}/data/04_pfastq/${platform}/${run_id}/${lane}/${user}/demux_fastq/", mode: 'copy',
   saveAs: { filename ->
-    filename.endsWith(".fq.gz") ? "fastq/$filename" : filename
+    filename.endsWith(".fastq.gz") ? "fastq/$filename" : filename
   }
 
   input:
