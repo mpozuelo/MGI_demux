@@ -152,8 +152,8 @@ Channel
   .from( ch_input )
   .splitCsv(header:false, sep:',')
   .map { it = ["${it[0]}", "${it[1]}", "${it[2]}", "${it[3]}", "${it[4]}", "${it[5]}", "${it[6]}", "${it[8]}", "${it[9]}", "${it[11]}", "${it[12]}",
-  [file("${cluster_path}/data/02_rfastq/${it[9]}/${it[4]}/${it[5]}/${it[4]}_${it[5]}_read_1.fq.gz", checkIfExists: true),
-  file("${cluster_path}/data/02_rfastq/${it[9]}/${it[4]}/${it[5]}/${it[4]}_${it[5]}_read_2.fq.gz", checkIfExists: true)]]}
+  [file("${cluster_path}/data/02_rfastq/${it[9]}/${it[5]}/${it[6]}/${it[5]}_${it[6]}_read_1.fq.gz", checkIfExists: true),
+  file("${cluster_path}/data/02_rfastq/${it[9]}/${it[5]}/${it[6]}/${it[5]}_${it[6]}_read_2.fq.gz", checkIfExists: true)]]}
   .set { ch_demux }
 
 
