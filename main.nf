@@ -397,7 +397,7 @@ process change_header {
 
   output:
   set val(row), val(sample), file("*001.fastq.gz"), val(index), val(run_id), val(lane), val(platform), val(user) into ch_umi_removal,
-                                                                                                            ch_fastq
+                                                                                                            ch_fastqc
   path("*.csv") into ch_merge_samplesheet
 
   script:
