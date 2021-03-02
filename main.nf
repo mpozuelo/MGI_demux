@@ -130,6 +130,7 @@ ${summary.collect { k,v -> "            <dt>$k</dt><dd><samp>${v ?: '<span style
  /*
   * LOAD SAMPLESHEET and assign get the columns we will use for demultiplexing
   It contains the following columns:
+  0-rowid
  1- Name given to the sample
  2- Index
  3- Index2
@@ -150,9 +151,9 @@ ${summary.collect { k,v -> "            <dt>$k</dt><dd><samp>${v ?: '<span style
 Channel
   .from( ch_input )
   .splitCsv(header:false, sep:',')
-  .map { it = ["${it[0]}", "${it[1]}", "${it[2]}", "${it[3]}", "${it[4]}", "${it[5]}", "${it[7]}", "${it[8]}", "${it[10]}", "${it[11]}",
-  [file("${cluster_path}/data/02_rfastq/${it[8]}/${it[4]}/${it[5]}/${it[4]}_${it[5]}_read_1.fq.gz", checkIfExists: true),
-  file("${cluster_path}/data/02_rfastq/${it[8]}/${it[4]}/${it[5]}/${it[4]}_${it[5]}_read_2.fq.gz", checkIfExists: true)]]}
+  .map { it = ["${it[0]}", "${it[1]}", "${it[2]}", "${it[3]}", "${it[4]}", "${it[5]}", "${it[6]}", "${it[8]}", "${it[9]}", "${it[11]}", "${it[12]}",
+  [file("${cluster_path}/data/02_rfastq/${it[9]}/${it[4]}/${it[5]}/${it[4]}_${it[5]}_read_1.fq.gz", checkIfExists: true),
+  file("${cluster_path}/data/02_rfastq/${it[9]}/${it[4]}/${it[5]}/${it[4]}_${it[5]}_read_2.fq.gz", checkIfExists: true)]]}
   .set { ch_demux }
 
 
@@ -171,10 +172,10 @@ process demux_index {
 
 
   input:
-  set val(sample), val(index), val(index2), val(barcode), val(run_id), val(lane), val(protocol), val(platform), val(genome), val(user), path(reads) from ch_demux
+  set val(row), val(sample), val(index), val(index2), val(barcode), val(run_id), val(lane), val(protocol), val(platform), val(genome), val(user), path(reads) from ch_demux
 
   output:
-  set val(sample), path("*.fq.gz"), val(index), val(index2), val(barcode), val(run_id), val(lane), val(protocol), val(platform), val(genome), val(user) into ch_demux_index2
+  set val(row), val(sample), path("*.fq.gz"), val(index), val(index2), val(barcode), val(run_id), val(lane), val(protocol), val(platform), val(genome), val(user) into ch_demux_index2
   path("*.log") optional true
 
   script:
@@ -232,10 +233,10 @@ process demux_index {
 
 
      input:
-     set val(sample), path(reads), val(index), val(index2), val(barcode), val(run_id), val(lane), val(protocol), val(platform), val(genome), val(user) from ch_demux_index2
+     set val(row), val(sample), path(reads), val(index), val(index2), val(barcode), val(run_id), val(lane), val(protocol), val(platform), val(genome), val(user) from ch_demux_index2
 
      output:
-     set val(sample), path("*.fq.gz"), val(index), val(index2), val(barcode), val(run_id), val(lane), val(protocol), val(platform), val(genome), val(user) into ch_demux_BC
+     set val(row), val(sample), path("*.fq.gz"), val(index), val(index2), val(barcode), val(run_id), val(lane), val(protocol), val(platform), val(genome), val(user) into ch_demux_BC
      path("*.{fq.gz,log}")
 
      script:
@@ -296,19 +297,17 @@ process demux_BC {
   tag "$sample"
   label 'process_high'
 
-    publishDir "${cluster_path}/data/04_pfastq/${platform}/${run_id}/${lane}/${user}/demux_fastq", mode: 'copy',
+    publishDir "${cluster_path}/data/04_pfastq/${platform}/${run_id}/${lane}/${user}/BC_removal", mode: 'copy',
     saveAs: { filename ->
       filename.endsWith(".log") ? "logs/$filename" : filename
     }
 
 
   input:
-  set val(sample), path(reads), val(index), val(index2), val(barcode), val(run_id), val(lane), val(protocol), val(platform), val(genome), val(user) from ch_demux_BC
+  set val(row), val(sample), path(reads), val(index), val(index2), val(barcode), val(run_id), val(lane), val(protocol), val(platform), val(genome), val(user) from ch_demux_BC
 
   output:
-  set val(sample), path("*.fq.gz"), val(run_id), val(lane), val(platform), val(user) into ch_fastqc
-  set val(sample), path("*.fq.gz"), val(index), val(barcode), val(run_id), val(lane), val(protocol), val(platform), val(genome), val(user) into ch_single_cell_header,
-                                                                                                                                                ch_umi_removal
+  set val(row), val(sample), file("*.fq.gz"), val(index), val(run_id), val(lane), val(protocol), val(platform), val(genome), val(user) into ch_change_header
   path("*.{fq.gz,log}")
 
   script:
@@ -385,33 +384,97 @@ process single_cell_fastq {
 
 
 
+process change_header {
+  tag "$sample"
+  label 'process_medium'
+  publishDir "${cluster_path}/04_pfastq/${platform}/${run_id}/${lane}/${user}/demux_fastq/", mode: 'copy',
+  saveAs: { filename ->
+    filename.endsWith(".fq.gz") ? "fastq/$filename" : filename
+  }
+
+  input:
+  set val(row), val(sample), file(reads), val(index), val(run_id), val(lane), val(protocol), val(platform), val(genome), val(user) from ch_change_header
+
+  output:
+  set val(row), val(sample), file("*001.fastq.gz"), val(index), val(run_id), val(lane), val(platform), val(user) into ch_umi_removal,
+                                                                                                            ch_fastq
+  path("*.csv") into ch_merge_samplesheet
+
+  script:
+  fqheader1 = "${sample}_${run_id}_${lane}_R1_BC.fq"
+  fqheader2 = "${sample}_${run_id}_${lane}_R2_BC.fq"
+  gzheader1 = "${sample}_${run_id}_${lane}_R1_BC.fq.gz"
+  gzheader2 = "${sample}_${run_id}_${lane}_R2_BC.fq.gz"
+
+  // Re-write reads header to Illumina format, taking info from MGI headers
+  // For this step, BC sequence is collected from header (BC was incuded in the header in previous step)
+  //File_ID_number=\$(echo "${sample}" | rev | cut -c 1 | rev)
+
+  """
+  if [ $protocol -eq "scRNAseq" ]
+  then
+    File_ID_new=\$(echo "${sample}" | rev | cut -c 3- | rev)
+  else
+    File_ID_new=${sample}
+  fi
+
+  zcat ${reads[0]} | awk -v var="$index" '{if (NR%4 == 1){print \$1"_"var} else{print \$1}}' > $fqheader1 &
+  zcat ${reads[1]} | awk -v var="$index" '{if (NR%4 == 1){print \$1"_"var} else{print \$1}}' > $fqheader2
+  pigz -p $task.cpus $fqheader1
+  pigz -p $task.cpus $fqheader2
+  Lane_ID_number=\$(echo "${lane}" | rev | cut -c 1 | rev)
+  convertHeaders.py -i $gzheader1 -o \${File_ID_new}_S${row}_L00\${Lane_ID_number}_R1_001.fastq.gz &
+  convertHeaders.py -i $gzheader2 -o \${File_ID_new}_S${row}_L00\${Lane_ID_number}_R2_001.fastq.gz
+  printf "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n" "\$File_ID_new" "$row" "\$Lane_ID_number" "$run_id" "$platform" "$protocol" "$genome" "$user" > "${sample}_samplesheet.csv"
+  """
+}
+
+
+
 
 process remove_umi {
   tag "$sample"
   label 'process_medium'
-  publishDir "${cluster_path}/data/04_pfastq/${platform}/${run_id}/${lane}/${user}/demux_fastq/", mode: 'copy'
+  publishDir "${cluster_path}/data/04_pfastq/${platform}/${run_id}/${lane}/${user}/demux_fastq/woUMI", mode: 'copy',
+  saveAs: { filename ->
+    filename.endsWith(".csv") ? null : filename
+  }
 
   input:
   set val(sample), path(reads), val(index), val(barcode), val(run_id), val(lane), val(protocol), val(platform), val(genome), val(user) from ch_umi_removal
 
   output:
-  path(".fq.gz")
+  path("*woUMI*.fastq.gz")
 
   when:
   protocol == "RNAseq_3_S" | protocol == "RNAseq_3_ULI"
 
   script:
-  woumi1 = "${sample}_${run_id}_${lane}_R1_woUMI.fq.gz"
-  woumi2 = "${sample}_${run_id}_${lane}_R2_woUMI.fq.gz"
-  umi = "${sample}_${run_id}_${lane}_UMI.fq.gz"
-
-
-  // Re-write reads header to Illumina format, taking info from MGI headers
-  // For this step, BC sequence is collected from header (BC was incuded in the header in previous step)
-
   """
+  File_ID_new=\$(echo "${sample}" | rev | cut -c 3- | rev)
+  File_ID_number=\$(echo "${sample}" | rev | cut -c 1 | rev)
+  Lane_ID_number=\$(echo "${lane}" | rev | cut -c 1 | rev)
+  woumi1=\$(printf "%s_woUMI_S%s_L00%s_R1_001.fastq.gz" "\${File_ID_new}" "\${File_ID_number}" "\${Lane_ID_number}")
+  woumi2=\$(printf "%s_woUMI_S%s_L00%s_R2_001.fastq.gz" "\${File_ID_new}" "\${File_ID_number}" "\${Lane_ID_number}")
   cutadapt -l 10 -j 0 -o $umi ${reads[0]}
-  umi_tools extract -I ${reads[0]} -S $woumi1 --read2-in=${reads[1]} --read2-out=$woumi2 --bc-pattern=NNNNNNNNNN
+  umi_tools extract -I ${reads[0]} -S \$woumi1 --read2-in=${reads[1]} --read2-out=\$woumi2 --bc-pattern=NNNNNNNNNN
+  """
+}
+
+
+process merge_samplesheet {
+  label 'process_low'
+  publishDir "${outdir}/samplesheet", mode: 'copy'
+
+  input:
+  path("*") from ch_merge_samplesheet.collect().ifEmpty([])
+
+  output:
+  path("processed_samplesheet.csv")
+
+  script:
+  """
+  cat *.csv >> processed_samplesheet.csv
   """
 }
 
@@ -433,7 +496,7 @@ process remove_umi {
      }
 
      input:
-     set val(sample), path(reads), val(run_id), val(lane), val(platform), val(user) from ch_fastqc
+     set val(sample), path(reads), val(index), val(run_id), val(lane), val(platform), val(user) from ch_fastqc
 
      output:
      set path("*_fastqc.{zip,html}"), val(run_id), val(lane), val(platform), val(user) into fastqc_results
