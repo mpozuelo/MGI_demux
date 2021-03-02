@@ -151,7 +151,7 @@ ${summary.collect { k,v -> "            <dt>$k</dt><dd><samp>${v ?: '<span style
 Channel
   .from( ch_input )
   .splitCsv(header:false, sep:',')
-  .map { it = ["${it[0]}", "${it[1]}", "${it[2]}", "${it[3]}", "${it[4]}", "${it[5]}", "${it[6]}", "${it[8]}", "${it[9]}", "${it[11]}", "${it[12]}",
+  .map { it = ["${it[0]}", "${it[1]}", "${it[2]}", "${it[3]}", "${it[4]}", "${it[5]}", "${it[6]}", "${it[8]}", "${it[9]}", "${it[10]}", "${it[11]}",
   [file("${cluster_path}/data/02_rfastq/${it[9]}/${it[5]}/${it[6]}/${it[5]}_${it[6]}_read_1.fq.gz", checkIfExists: true),
   file("${cluster_path}/data/02_rfastq/${it[9]}/${it[5]}/${it[6]}/${it[5]}_${it[6]}_read_2.fq.gz", checkIfExists: true)]]}
   .set { ch_demux }
@@ -396,8 +396,8 @@ process change_header {
   set val(row), val(sample), file(reads), val(index), val(run_id), val(lane), val(protocol), val(platform), val(genome), val(user) from ch_change_header
 
   output:
-  set val(row), val(sample), file("*001.fastq.gz"), val(index), val(run_id), val(lane), val(platform), val(user) into ch_umi_removal,
-                                                                                                                      ch_fastqc
+  set val(row), val(sample), file("*001.fastq.gz"), val(index), val(run_id), val(lane), val(protocol), val(platform), val(user) into ch_umi_removal,
+                                                                                                                                     ch_fastqc
   path("*.csv") into ch_merge_samplesheet
 
   script:
@@ -441,7 +441,7 @@ process remove_umi {
   }
 
   input:
-  set val(row), val(sample), path(reads), val(index), val(barcode), val(run_id), val(lane), val(protocol), val(platform), val(genome), val(user) from ch_umi_removal
+  set val(row), val(sample), path(reads), val(index), val(barcode), val(run_id), val(lane), val(protocol), val(platform), val(user) from ch_umi_removal
 
   output:
   path("*woUMI*.fastq.gz")
