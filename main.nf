@@ -441,7 +441,7 @@ process remove_umi {
   }
 
   input:
-  set val(sample), path(reads), val(index), val(barcode), val(run_id), val(lane), val(protocol), val(platform), val(genome), val(user) from ch_umi_removal
+  set val(row), val(sample), path(reads), val(index), val(barcode), val(run_id), val(lane), val(protocol), val(platform), val(genome), val(user) from ch_umi_removal
 
   output:
   path("*woUMI*.fastq.gz")
