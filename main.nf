@@ -461,7 +461,7 @@ process remove_umi {
   """
 }
 
-
+/*
 process merge_samplesheet {
   label 'process_low'
   publishDir "${outdir}/samplesheet", mode: 'copy'
