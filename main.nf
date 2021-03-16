@@ -162,58 +162,50 @@ Channel
  */
 //Detect index in the end of read2
 
-process demux_index {
+process demux_BC {
   tag "$sample"
   label 'process_high'
-  publishDir "${cluster_path}/data/03_intermediate/${platform}/${run_id}/${lane}/Index-removal/", mode: 'copy',
-  saveAs: { filename ->
-    filename.endsWith(".log") ? "logs/$filename" : filename
-  }
+
+    publishDir "${cluster_path}/data/03_intermediate/${platform}/${run_id}/${lane}/${user}/BC_removal", mode: 'copy',
+    saveAs: { filename ->
+      filename.endsWith(".log") ? "logs/$filename" : filename
+    }
 
 
   input:
   set val(row), val(sample), val(index), val(index2), val(barcode), val(run_id), val(lane), val(protocol), val(platform), val(genome), val(user), path(reads) from ch_demux
 
   output:
-  set val(row), val(sample), path("*.fq.gz"), val(index), val(index2), val(barcode), val(run_id), val(lane), val(protocol), val(platform), val(genome), val(user) into ch_demux_index2
-  path("*.log") optional true
+  set val(row), val(sample), file("*.fq.gz"), val(index), val(run_id), val(lane), val(protocol), val(platform), val(genome), val(user) into ch_demux_BC
+  path("*.{fq.gz,log}")
 
   script:
   //discard = params.save_untrimmed ? '' : '--discard-untrimmed'
   read1 = reads[0]
   read2 = reads[1]
-  read1_index = "${sample}_${run_id}_${lane}_${index}_R1.fq.gz"
-  read2_index = "${sample}_${run_id}_${lane}_${index}_R2.fq.gz"
-  errors = index.length() > 6 ? "-e 0.15" : "-e 0.2"
+  read1_BC = "${sample}_${run_id}_${lane}_R1.fq.gz"
+  read2_BC = "${sample}_${run_id}_${lane}_R2.fq.gz"
+  errors = barcode.length() > 6 ? "-e 0.15" : "-e 0.2"
 
-
-  if (index == "NNNNNNNN" | index == "NNNNNN") {
+  if (barcode == "NNNNNNNN" | barcode == "NNNNNN") {
     """
-    length=(\$(echo -e `zcat $read1 | head -2 | tail -1 | awk '{print length(\$0)}'`))
-    length2=(\$(echo -e `zcat $read2 | head -2 | tail -1 | awk '{print length(\$0)}'`))
-    if [ "\$length" = "\$length2" ]
-    then
-    mv $read1 $read1_index
-    mv $read2 $read2_index
-    else
-    cutadapt -l \$length -o $read1_index $read1 -j 0 > "${sample}_${run_id}_${lane}_${index}_R1.log"
-    cutadapt -l \$length -o $read2_index $read2 -j 0 > "${sample}_${run_id}_${lane}_${index}_R2.log"
-    fi
+    mv $read1 $read1_BC
+    mv $read2 $read2_BC
     """
   } else {
     """
     cutadapt \
     $errors \
     --no-indels \
-    -a $sample=\"$index\$\" \
-    -o $read2_index -p $read1_index \
-    $read2 $read1 \
+    -g $sample=\"^$barcode\" \
+    -o $read1_BC -p $read2_BC \
+    $read1 $read2 \
     -j 0 \
-    --discard-untrimmed > ${sample}_${run_id}_${lane}_${index}.log
+    --discard-untrimmed > "${sample}_${run_id}_${lane}.log"
     """
   }
-
 }
+
 
 
 
@@ -221,7 +213,7 @@ process demux_index {
  * STEP 2 - Demultiplex - Index2
  */
  //After removing index, remove index2 from the end (again) of read2
-
+/*
  if (!params.single_index) {
    process demux_index2 {
      tag "$sample"
@@ -293,49 +285,60 @@ process demux_index {
  */
 //Detect barcode sequence in the beginning or read1
 
-process demux_BC {
+process demux_index {
   tag "$sample"
   label 'process_high'
-
-    publishDir "${cluster_path}/data/03_intermediate/${platform}/${run_id}/${lane}/${user}/BC_removal", mode: 'copy',
-    saveAs: { filename ->
-      filename.endsWith(".log") ? "logs/$filename" : filename
-    }
+  publishDir "${cluster_path}/data/03_intermediate/${platform}/${run_id}/${lane}/Index-removal/", mode: 'copy',
+  saveAs: { filename ->
+    filename.endsWith(".log") ? "logs/$filename" : filename
+  }
 
 
   input:
   set val(row), val(sample), path(reads), val(index), val(index2), val(barcode), val(run_id), val(lane), val(protocol), val(platform), val(genome), val(user) from ch_demux_BC
 
   output:
-  set val(row), val(sample), file("*.fq.gz"), val(index), val(run_id), val(lane), val(protocol), val(platform), val(genome), val(user) into ch_change_header
-  path("*.{fq.gz,log}")
+  set val(row), val(sample), path("*.fq.gz"), val(index), val(index2), val(barcode), val(run_id), val(lane), val(protocol), val(platform), val(genome), val(user) into ch_change_header
+  path("*.log") optional true
 
   script:
   //discard = params.save_untrimmed ? '' : '--discard-untrimmed'
   read1 = reads[0]
   read2 = reads[1]
-  read1_BC = "${sample}_${run_id}_${lane}_R1.fq.gz"
-  read2_BC = "${sample}_${run_id}_${lane}_R2.fq.gz"
-  errors = barcode.length() > 6 ? "-e 0.15" : "-e 0.2"
+  read1_index = "${sample}_${run_id}_${lane}_${index}_R1.fq.gz"
+  read2_index = "${sample}_${run_id}_${lane}_${index}_R2.fq.gz"
+  errors = index.length() > 6 ? "-e 0.15" : "-e 0.2"
 
-  if (barcode == "NNNNNNNN" | barcode == "NNNNNN") {
+
+  if (index == "NNNNNNNN" | index == "NNNNNN") {
     """
-    mv $read1 $read1_BC
-    mv $read2 $read2_BC
+    length=(\$(echo -e `zcat $read1 | head -2 | tail -1 | awk '{print length(\$0)}'`))
+    length2=(\$(echo -e `zcat $read2 | head -2 | tail -1 | awk '{print length(\$0)}'`))
+    if [ "\$length" = "\$length2" ]
+    then
+    mv $read1 $read1_index
+    mv $read2 $read2_index
+    else
+    cutadapt -l \$length -o $read1_index $read1 -j 0 > "${sample}_${run_id}_${lane}_${index}_R1.log"
+    cutadapt -l \$length -o $read2_index $read2 -j 0 > "${sample}_${run_id}_${lane}_${index}_R2.log"
+    fi
     """
   } else {
     """
     cutadapt \
     $errors \
     --no-indels \
-    -g $sample=\"^$barcode\" \
-    -o $read1_BC -p $read2_BC \
-    $read1 $read2 \
+    -a $sample=\"$index\$\" \
+    -o $read2_index -p $read1_index \
+    $read2 $read1 \
     -j 0 \
-    --discard-untrimmed > "${sample}_${run_id}_${lane}.log"
+    --discard-untrimmed > ${sample}_${run_id}_${lane}_${index}.log
     """
   }
+
 }
+
+
 
 /*
 process single_cell_fastq {
@@ -496,7 +499,7 @@ process merge_samplesheet {
      }
 
      input:
-     set val(row), val(sample), path(reads), val(index), val(run_id), val(lane), val(platform), val(user) from ch_fastqc
+     set val(row), val(sample), path(reads), val(index), val(run_id), val(lane), val(protocol), val(platform), val(user) from ch_fastqc
 
      output:
      set path("*_fastqc.{zip,html}"), val(run_id), val(lane), val(platform), val(user) into fastqc_results
@@ -509,7 +512,6 @@ process merge_samplesheet {
  } else {
    fastqc_results = Channel.empty()
  }
-
 
 
 // Generate the fastq files for the samples
