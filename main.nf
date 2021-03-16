@@ -81,6 +81,10 @@ if (!params.outdir) {
 
 cluster_path = params.cluster_path
 
+// Stage multiqc config files
+ch_multiqc_config        = file("$projectDir/assets/multiqc_config.yaml", checkIfExists: true)
+ch_image_docs            = file("$baseDir/assets/figures/Logo_IdisNA_CIMA.png", checkIfExists: true)
+
 
 // Header log info
 log.info mpozueloHeader()
