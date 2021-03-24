@@ -302,7 +302,7 @@ process demux_index {
   set val(row), val(sample), path(reads), val(index), val(index2), val(barcode), val(run_id), val(lane), val(protocol), val(platform), val(genome), val(user) from ch_demux_BC
 
   output:
-  set val(row), val(sample), path("*.fq.gz"), val(index), val(index2), val(barcode), val(run_id), val(lane), val(protocol), val(platform), val(genome), val(user) into ch_change_header
+  set val(row), val(sample), path("*.fq.gz"), val(index), val(index2), val(barcode), val(run_id), val(lane), val(protocol), val(platform), val(genome), val(user) into ch_remove_index2
   path("*.log") optional true
 
   script:
@@ -343,6 +343,34 @@ process demux_index {
 }
 
 
+process remove_index2 {
+  tag "$sample"
+  label 'process_high'
+  publishDir "${cluster_path}/data/03_intermediate/${platform}/${run_id}/${lane}/Index2-removal/", mode: 'copy',
+  saveAs: { filename ->
+    filename.endsWith(".log") ? "logs/$filename" : filename
+  }
+
+
+  input:
+  set val(row), val(sample), path(reads), val(index), val(index2), val(barcode), val(run_id), val(lane), val(protocol), val(platform), val(genome), val(user) from ch_remove_index2
+
+  output:
+  set val(row), val(sample), path("*final*.fq.gz"), val(index), val(index2), val(barcode), val(run_id), val(lane), val(protocol), val(platform), val(genome), val(user) into ch_change_header
+  path("*.log") optional true
+
+  script:
+  //discard = params.save_untrimmed ? '' : '--discard-untrimmed'
+  read1 = reads[0]
+  read2 = reads[1]
+  read1_index = "${sample}_${run_id}_${lane}_${index}_final_R1.fq.gz"
+  read2_index = "${sample}_${run_id}_${lane}_${index}_final_R2.fq.gz"
+
+  """
+  mv $read1 $read1_index
+  cutadapt -l 100 -o $read2_index $read2 -j 0 > "${sample}_${run_id}_${lane}_${index}_R2.log"
+  """
+}
 
 /*
 process single_cell_fastq {
