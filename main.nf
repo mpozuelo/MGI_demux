@@ -496,7 +496,7 @@ process merge_samplesheet {
      }
 
      input:
-     set val(row), val(sample), path(reads), val(index), val(run_id), val(lane), val(platform), val(user) from ch_fastqc
+     set val(row), val(sample), path(reads), val(index), val(run_id), val(lane), val(protocol), val(platform), val(user) from ch_fastqc
 
      output:
      set path("*_fastqc.{zip,html}"), val(run_id), val(lane), val(platform), val(user) into fastqc_results
