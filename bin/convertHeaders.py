@@ -21,12 +21,12 @@ def convertIllumina(elements_dict):
 
 
 # Collect elements from BGI format
-# Please note that you will need to attach the sample barcode sequence 
+# Please note that you will need to attach the sample barcode sequence
 # to the headers of the input FASTQ file
-# eg. 
+# eg.
 def parseBGI(header):
     # Extract sample barcode sequence
-    if header[-10] == "_":
+    if len(header.split("_")) > 1:
         # Get sample barcode
         header_split1 = header.split("_")
         sample_barcode = header_split1[-1]
@@ -39,7 +39,7 @@ def parseBGI(header):
             header = header.split("_")
             header_split1 = header[-1]
         else:
-            header_split1 = header       
+            header_split1 = header
         header_split2 = header_split1.split("/")
         paired_read_direction = int(header_split2[1])
         # Get rest of the information from the header
@@ -47,10 +47,10 @@ def parseBGI(header):
         seq_header = seq_header.replace("@", "")
         # First 10 charcters of sequence header, after sample number
         # are the flowcell number
-        flowcell_id = seq_header[:10]       
-        # Followed by flowcell 
+        flowcell_id = seq_header[:10]
+        # Followed by flowcell
         lane_id = seq_header[10:12]
-        lane_id = int(lane_id.replace("L", ""))       
+        lane_id = int(lane_id.replace("L", ""))
         # Get location of C (x location)
         x_id = seq_header[12:16]
         x_id = int(x_id.replace("C", ""))
@@ -87,7 +87,7 @@ def parseArguments(args):
     # Retrieve from parser
     input_file = args.input
     output_file = args.output
-  
+
     # Extract barcode from filename
     return input_file, output_file
 
@@ -110,7 +110,7 @@ if __name__ == "__main__":
     for line in input_fastq:
         parsed_line = parseLine(line)
         output_fastq.write(parsed_line)
-    
+
     input_fastq.close()
     output_fastq.close()
     print("Conversion of %s complete!" % input_file)
